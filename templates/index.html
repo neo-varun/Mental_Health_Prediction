@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health Analysis</title>
+    <style>
+        :root {
+            --primary: #1167d0;  /* Slightly brighter blue */
+            --success: #0c9f49;  /* Slightly brighter green */
+            --error: #ef6a5e;    /* Slightly darker red */
+            --text: #2c3e50;
+            --bg: #f5f6fa;
+            --card: #ffffff;
+            --border: #dcdde1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            padding: 2rem;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        /* Modern stepper */
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .stepper::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border);
+            z-index: 1;
+        }
+
+        .step-indicator {
+            position: relative;
+            z-index: 2;
+            background: var(--bg);
+            padding: 0 1rem;
+            text-align: center;
+            flex: 1;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .step-title {
+            font-size: 0.875rem;
+            color: var(--text);
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        .step-indicator.active .step-number {
+            background: var(--primary);
+            color: white;
+        }
+
+        .step-indicator.active .step-title {
+            color: var(--primary);
+            opacity: 1;
+        }
+
+        .step-indicator.completed .step-number {
+            background: var(--success);
+            color: white;
+        }
+
+        .step {
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .step.active { display: block; }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+        }
+
+        .error-message {
+            color: var(--error);
+            background: rgba(231, 76, 60, 0.1);
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            color: var(--success);
+            background: rgba(39, 174, 96, 0.1);
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .loading-spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .field-group { display: none; }
+        .field-group.visible { display: block; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideIn { 
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .back-button {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--card);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .metrics-table th,
+        .metrics-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metrics-table th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .metrics-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .metrics-table tr:hover {
+            background: var(--bg);
+        }
+
+        #metrics-button {
+            background: var(--primary);
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" 
+         data-student-model="{{ 'true' if student_model_exists else 'false' }}"
+         data-professional-model="{{ 'true' if professional_model_exists else 'false' }}">
+        <h1>Mental Health Analysis</h1>
+
+        <div class="stepper">
+            <div class="step-indicator active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-title">Profile</div>
+            </div>
+            <div class="step-indicator" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-title">Model</div>
+            </div>
+            <div class="step-indicator" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-title">Assessment</div>
+            </div>
+        </div>
+        
+        <div class="step active" id="step1">
+            <div class="form-group">
+                <label for="user_type">Are you a student or a professional?</label>
+                <select id="user_type" onchange="handleUserType(this.value)">
+                    <option value="">Please select...</option>
+                    <option value="student">Student</option>
+                    <option value="professional">Professional</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="step" id="step2">
+            <div id="model-status"></div>
+            <div class="button-group">
+                <form id="train-form" style="display: inline-block;">
+                    <input type="hidden" id="train_user_type" name="user_type">
+                    <input type="hidden" name="force_train" value="false">
+                    <button type="submit" id="train-button">Train Model</button>
+                </form>
+                <button id="metrics-button" onclick="showModelMetrics()">View Model Metrics</button>
+                <button id="next-button" 
+                        style="display:none; background: var(--success)" 
+                        onclick="showStep(3)">
+                    Continue to Analysis
+                </button>
+            </div>
+
+            <div id="metrics-table" style="display: none; margin: 20px 0;">
+                <table class="metrics-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Accuracy</td><td id="accuracy-value">-</td></tr>
+                        <tr><td>Precision</td><td id="precision-value">-</td></tr>
+                        <tr><td>Recall</td><td id="recall-value">-</td></tr>
+                        <tr><td>F1 Score</td><td id="f1-value">-</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="navigation-buttons">
+                <button class="back-button" onclick="resetAndShowStep(1)">Back</button>
+            </div>
+            <div id="train-success" class="success-message"></div>
+            <div id="train-error" class="error-message"></div>
+            <div class="loading" id="training-loading">
+                <div class="loading-spinner"></div>
+                <p>Training model... Please wait.</p>
+            </div>
+        </div>
+
+        <div class="step" id="step3">
+            <div id="predict-error" class="error-message"></div>
+            <form id="predict-form">
+                <input type="hidden" id="predict_user_type" name="user_type">
+                
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" name="Age" min="1" max="120" required placeholder="Enter your age">
+                </div>
+
+                <div class="form-group">
+                    <label for="work_study_hours">Work/Study Hours per Day</label>
+                    <input type="number" id="work_study_hours" name="Work/Study Hours" min="0" max="24" required placeholder="Hours per day">
+                </div>
+
+                <div class="form-group">
+                    <label for="sleep_duration">Sleep Duration</label>
+                    <select id="sleep_duration" name="Sleep Duration" required>
+                        <option value="">Select sleep duration...</option>
+                        <option value="Less than 5 hours">Less than 5 hours</option>
+                        <option value="5-6 hours">5-6 hours</option>
+                        <option value="7-8 hours">7-8 hours</option>
+                        <option value="More than 8 hours">More than 8 hours</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="financial_stress">Financial Stress Level (1-5)</label>
+                    <input type="number" 
+                           id="financial_stress" 
+                           name="Financial Stress" 
+                           min="1" 
+                           max="5" 
+                           required 
+                           placeholder="Rate from 1-5">
+                </div>
+
+                <div class="form-group">
+                    <label for="dietary_habits">Dietary Habits</label>
+                    <select id="dietary_habits" name="Dietary Habits" required>
+                        <option value="">Select dietary habits...</option>
+                        <option value="Healthy">Healthy</option>
+                        <option value="Moderate">Moderate</option>
+                        <option value="Unhealthy">Unhealthy</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="family_history">Family History of Mental Illness</label>
+                    <select id="family_history" name="Family History of Mental Illness" required>
+                        <option value="">Please select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="Gender" required>
+                        <option value="">Select gender...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <select id="city" name="City" required>
+                        <option value="">Select city...</option>
+                        <option value="Agra">Agra</option>
+                        <option value="Ahmedabad">Ahmedabad</option>
+                        <option value="Bangalore">Bangalore</option>
+                        <option value="Bhopal">Bhopal</option>
+                        <option value="Chennai">Chennai</option>
+                        <option value="Delhi">Delhi</option>
+                        <option value="Faridabad">Faridabad</option>
+                        <option value="Ghaziabad">Ghaziabad</option>
+                        <option value="Hyderabad">Hyderabad</option>
+                        <option value="Indore">Indore</option>
+                        <option value="Jaipur">Jaipur</option>
+                        <option value="Kalyan">Kalyan</option>
+                        <option value="Kanpur">Kanpur</option>
+                        <option value="Kolkata">Kolkata</option>
+                        <option value="Lucknow">Lucknow</option>
+                        <option value="Ludhiana">Ludhiana</option>
+                        <option value="Meerut">Meerut</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Nagpur">Nagpur</option>
+                        <option value="Nashik">Nashik</option>
+                        <option value="Patna">Patna</option>
+                        <option value="Pune">Pune</option>
+                        <option value="Rajkot">Rajkot</option>
+                        <option value="Srinagar">Srinagar</option>
+                        <option value="Surat">Surat</option>
+                        <option value="Thane">Thane</option>
+                        <option value="Vadodara">Vadodara</option>
+                        <option value="Varanasi">Varanasi</option>
+                        <option value="Vasai-Virar">Vasai-Virar</option>
+                        <option value="Visakhapatnam">Visakhapatnam</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="degree">Degree/Education Level</label>
+                    <select id="degree" name="Degree" required>
+                        <option value="">Select degree...</option>
+                        <option value="B.Arch">B.Arch</option>
+                        <option value="B.Com">B.Com</option>
+                        <option value="B.Ed">B.Ed</option>
+                        <option value="B.Pharm">B.Pharm</option>
+                        <option value="B.Tech">B.Tech</option>
+                        <option value="BA">BA</option>
+                        <option value="BBA">BBA</option>
+                        <option value="BCA">BCA</option>
+                        <option value="BE">BE</option>
+                        <option value="BHM">BHM</option>
+                        <option value="BSc">BSc</option>
+                        <option value="Class 12">Class 12</option>
+                        <option value="LLB">LLB</option>
+                        <option value="LLM">LLM</option>
+                        <option value="MA">MA</option>
+                        <option value="MBA">MBA</option>
+                        <option value="MCA">MCA</option>
+                        <option value="M.Com">M.Com</option>
+                        <option value="M.Ed">M.Ed</option>
+                        <option value="ME">ME</option>
+                        <option value="MHM">MHM</option>
+                        <option value="M.Pharm">M.Pharm</option>
+                        <option value="M.Tech">M.Tech</option>
+                        <option value="MD">MD</option>
+                        <option value="MSc">MSc</option>
+                        <option value="PhD">PhD</option>
+                    </select>
+                </div>
+
+                <div class="field-group student-fields">
+                    <div class="form-group">
+                        <label for="academic_pressure">Academic Pressure</label>
+                        <input type="number" id="academic_pressure" name="Academic Pressure" min="1" max="5" placeholder="Rate from 1-5">
+                    </div>
+                    <div class="form-group">
+                        <label for="cgpa">CGPA</label>
+                        <input type="number" id="cgpa" name="CGPA" min="0" max="10" step="0.01" placeholder="Enter your CGPA (0-10)">
+                    </div>
+                    <div class="form-group">
+                        <label for="study_satisfaction">Study Satisfaction (1-5)</label>
+                        <input type="number" 
+                               id="study_satisfaction" 
+                               name="Study Satisfaction" 
+                               min="1" 
+                               max="5" 
+                               placeholder="Rate from 1-5">
+                    </div>
+                </div>
+
+                <div class="field-group professional-fields">
+                    <div class="form-group">
+                        <label for="profession">Profession</label>
+                        <select id="profession" name="Profession" required>
+                            <option value="">Select profession...</option>
+                            <option value="Accountant">Accountant</option>
+                            <option value="Architect">Architect</option>
+                            <option value="Business Analyst">Business Analyst</option>
+                            <option value="Chef">Chef</option>
+                            <option value="Chemist">Chemist</option>
+                            <option value="Civil Engineer">Civil Engineer</option>
+                            <option value="Consultant">Consultant</option>
+                            <option value="Content Writer">Content Writer</option>
+                            <option value="Customer Support">Customer Support</option>
+                            <option value="Data Scientist">Data Scientist</option>
+                            <option value="Digital Marketer">Digital Marketer</option>
+                            <option value="Doctor">Doctor</option>
+                            <option value="Educational Consultant">Educational Consultant</option>
+                            <option value="Electrician">Electrician</option>
+                            <option value="Entrepreneur">Entrepreneur</option>
+                            <option value="Financial Analyst">Financial Analyst</option>
+                            <option value="Graphic Designer">Graphic Designer</option>
+                            <option value="HR Manager">HR Manager</option>
+                            <option value="Investment Banker">Investment Banker</option>
+                            <option value="Judge">Judge</option>
+                            <option value="Lawyer">Lawyer</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Marketing Manager">Marketing Manager</option>
+                            <option value="Mechanical Engineer">Mechanical Engineer</option>
+                            <option value="Pharmacist">Pharmacist</option>
+                            <option value="Pilot">Pilot</option>
+                            <option value="Plumber">Plumber</option>
+                            <option value="Research Analyst">Research Analyst</option>
+                            <option value="Researcher">Researcher</option>
+                            <option value="Sales Executive">Sales Executive</option>
+                            <option value="Software Engineer">Software Engineer</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Travel Consultant">Travel Consultant</option>
+                            <option value="UX/UI Designer">UX/UI Designer</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="work_pressure">Work Pressure</label>
+                        <input type="number" id="work_pressure" name="Work Pressure" min="1" max="5" placeholder="Rate from 1-5">
+                    </div>
+                    <div class="form-group">
+                        <label for="job_satisfaction">Job Satisfaction</label>
+                        <input type="number" id="job_satisfaction" name="Job Satisfaction" min="1" max="5" placeholder="Rate from 1-5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mental_health">Have you ever had suicidal thoughts?</label>
+                    <select id="mental_health" name="Have you ever had suicidal thoughts ?" required>
+                        <option value="">Please select...</option>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </div>
+
+                <div class="navigation-buttons">
+                    <button type="button" class="back-button" onclick="showStep(2)">Back</button>
+                    <button type="submit">Start Analysis</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize model states from data attributes
+        const container = document.querySelector('.container');
+        const MODEL_FLAGS = {
+            student: container.dataset.studentModel === 'true',
+            professional: container.dataset.professionalModel === 'true'
+        };
+        let currentUserType = '';
+        // Store initial predict form HTML for reset
+        const initialPredictForm = document.getElementById('predict-form').innerHTML;
+
+        function updateSteppers(currentStep) {
+            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                const step = index + 1;
+                indicator.classList.remove('active', 'completed');
+                
+                if (step < currentStep) {
+                    indicator.classList.add('completed');
+                } else if (step === currentStep) {
+                    indicator.classList.add('active');
+                }
+            });
+        }
+
+        function showStep(step) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+            updateSteppers(step);
+        }
+
+        function handleUserType(type) {
+            if (!type) return;
+            currentUserType = type;
+            document.getElementById('train_user_type').value = type;
+            document.getElementById('predict_user_type').value = type;
+            
+            // First, reset all field groups and their required status
+            document.querySelectorAll('.field-group').forEach(group => {
+                group.classList.remove('visible');
+                group.querySelectorAll('input, select').forEach(input => {
+                    input.required = false;
+                });
+            });
+            
+            // Show and set required fields based on user type
+            if (type === 'student') {
+                const studentFields = document.querySelector('.student-fields');
+                if (studentFields) {
+                    studentFields.classList.add('visible');
+                    studentFields.querySelectorAll('input').forEach(input => {
+                        input.required = true;
+                    });
+                }
+            } else if (type === 'professional') {
+                const professionalFields = document.querySelector('.professional-fields');
+                if (professionalFields) {
+                    professionalFields.classList.add('visible');
+                    professionalFields.querySelectorAll('input').forEach(input => {
+                        input.required = true;
+                    });
+                }
+            }
+
+            showStep(2);
+            updateModelStatus();
+        }
+
+        function updateModelStatus() {
+            const exists = MODEL_FLAGS[currentUserType];
+            const statusDiv = document.getElementById('model-status');
+            const trainButton = document.getElementById('train-button');
+            const nextButton = document.getElementById('next-button');
+            const metricsButton = document.getElementById('metrics-button');
+            const errorDiv = document.getElementById('train-error');
+            const metricsTable = document.getElementById('metrics-table');
+            
+            errorDiv.style.display = 'none';
+            metricsTable.style.display = 'none';
+            
+            if (exists) {
+                statusDiv.innerHTML = '<div class="success-message" style="display:block">A trained model is ready to use</div>';
+                trainButton.textContent = 'Retrain Model';
+                nextButton.style.display = 'inline-block';
+                metricsButton.style.display = 'inline-block';
+            } else {
+                statusDiv.innerHTML = '<div class="error-message" style="display:block">No trained model found. Training is required.</div>';
+                trainButton.textContent = 'Train Model';
+                nextButton.style.display = 'none';
+                metricsButton.style.display = 'none';
+            }
+        }
+
+        function resetForm() {
+            // Reset form fields and user type
+            document.getElementById('user_type').value = '';
+            document.getElementById('train_user_type').value = '';
+            document.getElementById('predict_user_type').value = '';
+            currentUserType = '';
+            
+            // Get all input and select elements
+            const formElements = document.querySelectorAll('input, select');
+            formElements.forEach(element => {
+                if (element.type === 'hidden') return; // Skip hidden fields
+                element.value = '';
+                element.required = false;
+            });
+            
+            // Reset field groups visibility
+            document.querySelectorAll('.field-group').forEach(group => {
+                group.classList.remove('visible');
+            });
+            
+            // Reset all messages
+            document.querySelectorAll('.error-message, .success-message').forEach(msg => {
+                msg.style.display = 'none';
+            });
+            
+            // Reset prediction form to initial state
+            const predictForm = document.getElementById('predict-form');
+            if (predictForm) {
+                predictForm.innerHTML = initialPredictForm;
+            }
+            
+            // Reset model status
+            const modelStatus = document.getElementById('model-status');
+            if (modelStatus) {
+                modelStatus.innerHTML = '';
+            }
+            
+            // Reset next button
+            const nextButton = document.getElementById('next-button');
+            if (nextButton) {
+                nextButton.style.display = 'none';
+            }
+            
+            // Also hide metrics table and button
+            const metricsTable = document.getElementById('metrics-table');
+            const metricsButton = document.getElementById('metrics-button');
+            if (metricsTable) metricsTable.style.display = 'none';
+            if (metricsButton) metricsButton.style.display = 'none';
+            
+            // Show step 1 and update steppers
+            showStep(1);
+            updateSteppers(1);
+        }
+
+        function resetAndShowStep(step) {
+            if (step === 1) {
+                resetForm();
+            } else {
+                showStep(step);
+            }
+        }
+
+        // Form submissions
+        document.getElementById('train-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loading = document.getElementById('training-loading');
+            const success = document.getElementById('train-success');
+            const error = document.getElementById('train-error');
+            const trainButton = document.getElementById('train-button');
+            const nextButton = document.getElementById('next-button');
+            
+            // Reset messages
+            success.style.display = 'none';
+            error.style.display = 'none';
+            loading.style.display = 'block';
+            trainButton.disabled = true;
+
+            try {
+                const formData = new FormData(e.target);
+                // Always set force_train to true when clicking train button
+                formData.set('force_train', 'true');
+                
+                const response = await fetch('/train', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    MODEL_FLAGS[currentUserType] = true;
+                    success.textContent = data.message;
+                    success.style.display = 'block';
+                    nextButton.style.display = 'inline-block';
+                    
+                    // Only auto-proceed if this was initial training
+                    if (!MODEL_FLAGS[currentUserType]) {
+                        setTimeout(() => {
+                            showStep(3);
+                            success.style.display = 'none';
+                        }, 1500);
+                    }
+                } else {
+                    error.textContent = data.message || 'Training failed. Please try again.';
+                    error.style.display = 'block';
+                    nextButton.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                error.textContent = 'An error occurred during training. Please try again.';
+                error.style.display = 'block';
+                nextButton.style.display = 'none';
+            } finally {
+                loading.style.display = 'none';
+                trainButton.disabled = false;
+                updateModelStatus();
+            }
+        });
+
+        document.getElementById('predict-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const error = document.getElementById('predict-error');
+            error.style.display = 'none';
+            
+            // Validate all common required fields
+            const commonFields = [
+                { id: 'age', name: 'Age' },
+                { id: 'work_study_hours', name: 'Work/Study Hours' },
+                { id: 'sleep_duration', name: 'Sleep Duration' },
+                { id: 'financial_stress', name: 'Financial Stress' },
+                { id: 'dietary_habits', name: 'Dietary Habits' },
+                { id: 'mental_health', name: 'Mental Health' },
+                { id: 'family_history', name: 'Family History' },
+                { id: 'gender', name: 'Gender' },
+                { id: 'city', name: 'City' },
+                { id: 'degree', name: 'Degree' }
+            ];
+            
+            const studentFields = [
+                { id: 'academic_pressure', name: 'Academic Pressure' },
+                { id: 'cgpa', name: 'CGPA' },
+                { id: 'study_satisfaction', name: 'Study Satisfaction' }
+            ];
+            
+            const professionalFields = [
+                { id: 'profession', name: 'Profession' },
+                { id: 'work_pressure', name: 'Work Pressure' },
+                { id: 'job_satisfaction', name: 'Job Satisfaction' }
+            ];
+            
+            let fieldsToValidate = [...commonFields];
+            if (currentUserType === 'student') {
+                fieldsToValidate = [...fieldsToValidate, ...studentFields];
+            } else if (currentUserType === 'professional') {
+                fieldsToValidate = [...fieldsToValidate, ...professionalFields];
+            }
+            
+            const missingFields = [];
+            fieldsToValidate.forEach(field => {
+                const element = document.getElementById(field.id);
+                if (!element || !element.value || element.value.trim() === '') {
+                    missingFields.push(field.name);
+                }
+            });
+            
+            if (missingFields.length > 0) {
+                error.textContent = 'Please fill in all required fields: ' + missingFields.join(', ');
+                error.style.display = 'block';
+                error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            // Show loading state
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Analyzing...';
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = data.prediction === 1 ? 
+                        'Based on the provided information, it is recommended to seek mental health support.' : 
+                        'Based on the provided information, your mental health appears to be in a good state.';
+                    
+                    // Clear the form first
+                    const form = document.getElementById('predict-form');
+                    const formContent = form.innerHTML;  // Store form content temporarily
+                    form.innerHTML = '';
+                    
+                    // Create and add result message
+                    const resultMessage = document.createElement('div');
+                    resultMessage.className = data.prediction === 1 ? 'error-message' : 'success-message';
+                    resultMessage.style.display = 'block';
+                    resultMessage.textContent = result;
+                    form.appendChild(resultMessage);
+                    
+                    // Add home button
+                    const buttonGroup = document.createElement('div');
+                    buttonGroup.className = 'navigation-buttons';
+                    const homeButton = document.createElement('button');
+                    homeButton.textContent = 'Home';
+                    homeButton.onclick = (e) => {
+                        e.preventDefault();
+                        // Restore the form content before redirecting
+                        form.innerHTML = formContent;
+                        // Reset the form state
+                        resetForm();
+                    };
+                    buttonGroup.appendChild(homeButton);
+                    form.appendChild(buttonGroup);
+                } else {
+                    error.textContent = data.error || 'Analysis failed. Please check all fields and try again.';
+                    error.style.display = 'block';
+                    error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                error.textContent = 'An error occurred during analysis. Please try again.';
+                error.style.display = 'block';
+                error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } finally {
+                // Reset button state if error occurred
+                if (error.style.display === 'block') {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                }
+            }
+        });
+
+        async function showModelMetrics() {
+            const metricsTable = document.getElementById('metrics-table');
+            const metricsButton = document.getElementById('metrics-button');
+            
+            try {
+                metricsButton.disabled = true;
+                const response = await fetch('/get_metrics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_type: currentUserType
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('accuracy-value').textContent = (data.metrics.accuracy * 100).toFixed(2) + '%';
+                    document.getElementById('precision-value').textContent = (data.metrics.precision * 100).toFixed(2) + '%';
+                    document.getElementById('recall-value').textContent = (data.metrics.recall * 100).toFixed(2) + '%';
+                    document.getElementById('f1-value').textContent = (data.metrics.f1_score * 100).toFixed(2) + '%';
+                    
+                    metricsTable.style.display = 'block';
+                } else {
+                    const error = document.getElementById('train-error');
+                    error.textContent = data.message || 'Failed to fetch model metrics';
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                const error = document.getElementById('train-error');
+                error.textContent = 'An error occurred while fetching metrics';
+                error.style.display = 'block';
+            } finally {
+                metricsButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
